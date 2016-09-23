@@ -150,7 +150,9 @@ int main(int argc, char *argv[])
 
         //Création de la donnée
         QByteArray value;
-        value.append(char(0)); // Flags that specify the format of the value.
+        value.append(char(0)); // Flags spécifiant le format de la valeur
+
+        //Stockage du quint32 dans un QByteArray
         value.append(reinterpret_cast<const char*>(&dataToSend), sizeof(dataToSend)); // Valeur à envoyer
 
         // récupération de la caratéristique du service
