@@ -124,7 +124,10 @@ int main(int argc, char *argv[])
         if (valueChange == ValueUp)
             ++currentHeartRate;
         else
-            --currentHeartRate;
+            --currentHeartRate;         
+            
+        if (leController.data()->state() == QLowEnergyController::UnconnectedState)
+            leController->startAdvertising(QLowEnergyAdvertisingParameters(), advertisingData, advertisingData);
     };
     QObject::connect(&heartbeatTimer, &QTimer::timeout, heartbeatProvider);
     heartbeatTimer.start(1000);
