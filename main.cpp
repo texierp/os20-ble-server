@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     QTimer heartbeatTimer;
     quint8 currentHeartRate = 60;
     enum ValueChange { ValueUp, ValueDown } valueChange = ValueUp;
-    const auto heartbeatProvider = [&service, &currentHeartRate, &valueChange]() {
+    const auto heartbeatProvider = [&service, &currentHeartRate, &leController, &advertisingData, &valueChange]() {
         QByteArray value;
         value.append(char(0)); // Flags that specify the format of the value.
         value.append(char(currentHeartRate)); // Actual value.
