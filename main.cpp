@@ -48,9 +48,9 @@ int main(int argc, char *argv[])
                                 QBluetoothUuid::BloodPressure
                                 );                         //Ajout des services prédéfinis
 
-    //Création de la charactéristique
+    //Création de la caractéristique
     QLowEnergyCharacteristicData charData;
-    //spécification de la caractéristique voulue
+    //spécification de la caractéristique
     charData.setUuid(QBluetoothUuid::HeartRateMeasurement);
     charData.setValue(QByteArray(2, 0));
     //spécifique à la documentation bluetooth
@@ -126,6 +126,7 @@ int main(int argc, char *argv[])
         else
             --currentHeartRate;         
             
+        //Permet le relancement de l'advitising si le client s'est déconnecté
         if (leController.data()->state() == QLowEnergyController::UnconnectedState)
             leController->startAdvertising(QLowEnergyAdvertisingParameters(), advertisingData, advertisingData);
     };
@@ -135,24 +136,31 @@ int main(int argc, char *argv[])
     /**
      * TEMPERATURE
      */
-    QTimer tempTimer;
-    const auto tempProvider = [&serviceTemperature]() {
+    QTimer tempTimer;   //création d'un timer
+    const auto tempProvider = [&serviceTemperature]() { //boucle d'évenement
 
+        //récupération de la valeur de température
         QByteArray rawTemp = readValueFromFile("/sys/bus/iio/devices/iio\:device0/in_temp_raw");
         QByteArray scaleTemp = readValueFromFile("/sys/bus/iio/devices/iio\:device0/in_temp_scale");
 
         float temperature = rawTemp.toInt() * scaleTemp.toFloat();
 
+        //Conversion vers la norme IEEE 11073
         quint32 dataToSend = float754tofloat11073(temperature);
 
+        //Création de la donnée
         QByteArray value;
         value.append(char(0)); // Flags that specify the format of the value.
-        value.append(reinterpret_cast<const char*>(&dataToSend), sizeof(dataToSend)); // Actual value.
+        value.append(reinterpret_cast<const char*>(&dataToSend), sizeof(dataToSend)); // Valeur à envoyer
 
+        // récupération de la caratéristique du service
         QLowEnergyCharacteristic characteristic = serviceTemperature->characteristic(QBluetoothUuid::TemperatureMeasurement);
         Q_ASSERT(characteristic.isValid());
+
+        //mise à jour de la donnée
         serviceTemperature->writeCharacteristic(characteristic, value); // Potentially causes notification.
     };
+    //démarrage du timer
     QObject::connect(&tempTimer, &QTimer::timeout, tempProvider);
     tempTimer.start(1000);
 
@@ -170,14 +178,15 @@ int main(int argc, char *argv[])
 
 
         QByteArray value;
-        value.append(char(1)); // Flags that specify the format of the value.
-        value.append(reinterpret_cast<const char*>(&pressure), sizeof(pressure)); // Actual value.
-        value.append(reinterpret_cast<const char*>(&pressure), sizeof(pressure)); // Actual value.
-        value.append(reinterpret_cast<const char*>(&pressure), sizeof(pressure)); // Actual value.
+        value.append(char(1)); // Flags à 1 pour afficher les valeurs en kPa
+        //Ajout des valeurs sur les 3 données (Systolic, Diastolic, MAP). Voir documentation
+        value.append(reinterpret_cast<const char*>(&pressure), sizeof(pressure));
+        value.append(reinterpret_cast<const char*>(&pressure), sizeof(pressure));
+        value.append(reinterpret_cast<const char*>(&pressure), sizeof(pressure));
 
         QLowEnergyCharacteristic characteristic = servicePressure->characteristic(QBluetoothUuid::BloodPressureMeasurement);
         Q_ASSERT(characteristic.isValid());
-        servicePressure->writeCharacteristic(characteristic, value); // Potentially causes notification.
+        servicePressure->writeCharacteristic(characteristic, value);
     };
     QObject::connect(&pressureTimer, &QTimer::timeout, pressureProvider);
     pressureTimer.start(1000);
